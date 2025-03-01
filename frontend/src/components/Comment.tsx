@@ -12,21 +12,28 @@ import { useState } from "react";
 import CommentsList from "./CommentsList";
 import CommentForm from "./CommentForm";
 import { useAsyncFn } from "../hooks/useAsync";
-import { postComment, updateComment } from "../services/comment.srvs";
+import {
+  deleteComment,
+  toggleLikeComment,
+  postComment,
+  updateComment,
+} from "../services/comment.srvs";
+import { Comment as CommentType } from "../types/types";
 
 const dateFormatter = Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
 });
-interface Props {
-  id: string;
-  message: string;
-  user: any;
-  createdAt: string;
-}
-const Comment = ({ id, message, user, createdAt }: Props) => {
-  const { post, getReplies, createLocalComment, updateLocalComment } =
-    usePost();
+interface Props extends CommentType {}
+const Comment = ({ id, message, user, createdAt, liked, likeCount }: Props) => {
+  const {
+    post,
+    getReplies,
+    createLocalComment,
+    updateLocalComment,
+    deleteLocalComment,
+    updateLikeCount,
+  } = usePost();
   const [hideReplies, setHideReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -41,6 +48,12 @@ const Comment = ({ id, message, user, createdAt }: Props) => {
     loading: updateLoading,
     error: updateError,
   } = useAsyncFn(updateComment);
+
+  const { execute: deleteCommentFn, loading: deletingComment } =
+    useAsyncFn(deleteComment);
+
+  const { execute: toggleLikeCommentFn, loading: likingComment } =
+    useAsyncFn(toggleLikeComment);
 
   const onUpdateComment = (message: string): Promise<any> => {
     return commetUpdater({ postId: post?.id, id, message }).then(
@@ -60,6 +73,18 @@ const Comment = ({ id, message, user, createdAt }: Props) => {
         createLocalComment(comment);
       }
     );
+  };
+  const onCommentDelete = (id: string): Promise<any> => {
+    return deleteCommentFn({ id, postId: post?.id }).then((res) => {
+      console.log("del", res);
+      deleteLocalComment(id);
+    });
+  };
+  const onlikeComment = () => {
+    toggleLikeCommentFn({ postId: post?.id, id }).then((res) => {
+      console.log(res);
+      updateLikeCount(id, res.addLike);
+    });
   };
   const childComments = getReplies(id);
   return (
@@ -86,23 +111,37 @@ const Comment = ({ id, message, user, createdAt }: Props) => {
           <p className="">{message}</p>
         )}
 
-        <div className="flex gap-1">
-          <IconButton Icon={HeartIcon} active={false} color="text-blue-900">
-            2
+        <div className="flex gap-0">
+          <IconButton
+            disabled={likingComment}
+            onClick={() => onlikeComment()}
+            Icon={HeartIcon}
+            active={liked}
+            color="text-blue-500 font-bold"
+          >
+            {likeCount}
           </IconButton>
           <IconButton
+            disabled={replyLoading}
             onClick={() => setIsReplying((prev) => !prev)}
             Icon={ReplyIcon}
             active={isReplying}
             color="text-blue-900"
           />
           <IconButton
+            disabled={updateLoading}
             onClick={() => setIsEditing((prev) => !prev)}
             Icon={EditIcon}
             active={isEditing}
-            color="text-blue-900"
+            color="text-blue-600"
           />
-          <IconButton Icon={TrashIcon} active={false} color="text-red-500" />
+          <IconButton
+            disabled={deletingComment}
+            Icon={TrashIcon}
+            onClick={() => onCommentDelete(id)}
+            active={true}
+            color="text-red-500"
+          />
         </div>
       </div>
       {isReplying && (

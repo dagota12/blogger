@@ -18,6 +18,8 @@ interface PostContextProps {
   refetchPost: () => void;
   createLocalComment: (comment: Comment) => void;
   updateLocalComment: (id: string, comment: string) => void;
+  deleteLocalComment: (id: string) => void;
+  updateLikeCount: (id: string, addLike: boolean) => void;
 }
 
 const PostContext = createContext<PostContextProps | null>(null);
@@ -63,6 +65,8 @@ export function PostProvider({ children }: Props) {
     setComments((prev) => [comment, ...prev]);
   };
   const updateLocalComment = (id: string, message: string) => {
+    console.log("sdf");
+
     setComments((prev) => {
       return prev.map((comment) => {
         if (comment.id === id) {
@@ -72,6 +76,22 @@ export function PostProvider({ children }: Props) {
         return comment;
       });
     });
+  };
+  const updateLikeCount = (id: string, addLike: boolean) => {
+    setComments((prev) => {
+      return prev.map((comment) => {
+        const updatedCount = addLike
+          ? comment.likeCount + 1
+          : comment.likeCount - 1;
+        if (comment.id == id) {
+          return { ...comment, liked: addLike, likeCount: updatedCount };
+        }
+        return comment;
+      });
+    });
+  };
+  const deleteLocalComment = (id: string) => {
+    setComments((prev) => prev.filter((comment) => comment.id != id));
   };
 
   // console.log("groups", commetsByParentId);
@@ -87,6 +107,8 @@ export function PostProvider({ children }: Props) {
         refetchPost: refetchFn,
         updateLocalComment,
         createLocalComment,
+        deleteLocalComment,
+        updateLikeCount,
       }}
     >
       {children}

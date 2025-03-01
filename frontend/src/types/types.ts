@@ -27,6 +27,8 @@ export type Comment = {
   parentId?: string | null;
 
   likes: Like[]; // ✅ One-to-Many relation with Like
+  likeCount: number;
+  liked: boolean;
 };
 
 export type Like = {

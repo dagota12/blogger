@@ -30,6 +30,7 @@ const app = fastify({ logger: false });
 app.register(cors, {
   origin: [
     process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    "http://localhost:4173",
     "http://10.240.89.22:5173/",
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -62,12 +63,34 @@ app.get("/posts/:id", async (req, res) => {
         },
         select: {
           ...COMMENT_SELECT_FIELDS,
+          _count: {
+            select: { likes: true },
+          },
         },
       },
     },
   });
 
-  return posts;
+  const likes = await prisma.like.findMany({
+    where: {
+      userId: FAKE_USER_ID,
+      commentId: {
+        in: posts?.comments.map((post) => post.id),
+      },
+    },
+  });
+
+  return {
+    ...posts,
+    comments: posts?.comments.map((comment) => {
+      const { _count, ...rest } = comment;
+      return {
+        ...rest,
+        liked: likes.some((like) => like.commentId === comment.id),
+        likeCount: _count.likes,
+      };
+    }),
+  };
 });
 app.post("/posts/:id/comments", async (req, res) => {
   const { message, parentId, postId }: any = req.body;
@@ -75,15 +98,21 @@ app.post("/posts/:id/comments", async (req, res) => {
     res.send(httpErrors.badRequest("message is required!"));
   }
 
-  return await prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: {
-      userId: FAKE_USER_ID,
+      userId: FAKE_USER_ID ?? "",
       message,
       parentId,
       postId,
     },
     select: COMMENT_SELECT_FIELDS,
   });
+
+  return {
+    ...comment,
+    liked: false,
+    likeCount: 0,
+  };
 });
 
 app.put("/posts/:postId/comments/:commentId", async (req, res) => {
@@ -107,6 +136,49 @@ app.put("/posts/:postId/comments/:commentId", async (req, res) => {
     },
   });
 });
+app.post("/posts/:postId/comments/:commentId/like", async (req, res) => {
+  const { postId, commentId }: any = req.params;
+  const userId = FAKE_USER_ID ?? "";
+
+  const like = await prisma.like.findUnique({
+    where: {
+      userId_commentId: { userId, commentId },
+    },
+  });
+
+  if (like === null) {
+    await prisma.like.create({ data: { userId, commentId } });
+    return { addLike: true };
+  }
+
+  await prisma.like.delete({
+    where: { userId_commentId: { userId, commentId } },
+  });
+  return { addLike: false };
+});
+
+//delete comment
+app.delete("/posts/:postId/comments/:commentId", async (req, res) => {
+  const { postId, commentId }: any = req.params;
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { userId: true },
+  });
+
+  if (comment?.userId !== FAKE_USER_ID) {
+    return res.send(
+      httpErrors.unauthorized(
+        "You do not have permission to delete this message"
+      )
+    );
+  }
+
+  return await prisma.comment.delete({
+    where: { id: commentId, postId },
+    select: { id: true },
+  });
+});
+
 app.listen({ port: PORT }, (err) => {
   if (err) {
     console.log(err);
