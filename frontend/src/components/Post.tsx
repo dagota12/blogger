@@ -5,18 +5,23 @@ import CommentForm from "./CommentForm";
 import CommentsList from "./CommentsList";
 
 const Post = () => {
-  const { post, rootComments } = usePost();
+  const { post, rootComments, createLocalComment } = usePost();
   const {
     loading,
     error,
     execute: createCommentFn,
   } = useAsyncFn<any>(postComment);
 
-  const onSubmit = (message: string) => {
-    if (!createCommentFn) return;
-    return createCommentFn({ postId: post?.id, message });
+  const onSubmit = (message: string): Promise<any> => {
+    if (!createCommentFn) return Promise.reject("fail");
+    return createCommentFn({ postId: post?.id, message }).then((res) => {
+      console.log("comenting", res);
+
+      createLocalComment(res);
+    });
   };
-  if (!post) return;
+
+  if (!post) return <h1>loading...</h1>;
   return (
     <div className="container mx-auto">
       <div className="w-full p-3">

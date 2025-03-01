@@ -1,6 +1,6 @@
-import { JSX, ReactNode } from "react";
+import { HTMLAttributes, JSX, ReactNode } from "react";
 
-interface Props {
+interface Props extends HTMLAttributes<HTMLButtonElement> {
   Icon: JSX.ElementType;
   active: boolean;
   color: string;
@@ -11,7 +11,7 @@ const IconButton = ({ Icon, active, color, children, ...props }: Props) => {
   return (
     <button
       className={`p-1 flex items-center bg-inherit border-none rounded-sm text-sm cursor-pointer ${
-        active ? "color-blue-500" : color
+        active ? "color-red-500" : color
       }`}
       {...props}
     >

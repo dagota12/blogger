@@ -4,7 +4,7 @@ interface Props {
   loading: boolean;
   error: any;
   autoFocus: boolean;
-  initVal: string;
+  initVal?: string;
   onSubmit: (message: string) => Promise<any>;
 }
 
@@ -30,9 +30,10 @@ const CommentForm = ({
           id="message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="outline-none border rounded-md flex-grow "
+          className="outline-none border border-slate-400 rounded-md flex-grow p-2 bg-slate-50"
         ></textarea>
         <button
+          type="submit"
           className="px-4  py-0 rounded-md border-none bg-blue-700 text-slate-50 hover:bg-blue-500 cursor-pointer"
           disabled={loading}
         >

@@ -5,7 +5,7 @@ export function useAsync<T>(func: () => Promise<T>, dependencies: any[] = []) {
   useEffect(() => {
     execute();
   }, [execute]);
-  return state;
+  return { execute, ...state };
 }
 
 export function useAsyncFn<T>(
