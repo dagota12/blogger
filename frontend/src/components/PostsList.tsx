@@ -1,4 +1,4 @@
-import { getPosts } from "../services/posts";
+import { getPosts } from "../services/posts.srvs";
 import { Link } from "react-router";
 import { useAsync } from "../hooks/useAsync";
 

@@ -9,7 +9,7 @@ export function useAsync<T>(func: () => Promise<T>, dependencies: any[] = []) {
 }
 
 export function useAsyncFn<T>(
-  func: () => Promise<T>,
+  func: (...args: any[]) => Promise<T>,
   dependencies: any[] = []
 ) {
   return useAsyncInterval<T>(func, dependencies, false);
@@ -26,6 +26,7 @@ export function useAsyncInterval<T>(
 
   const execute = useCallback((...params: any[]) => {
     setLoading(true);
+
     return func(...params)
       .then((res) => {
         setData(res);

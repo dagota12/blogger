@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useMemo } from "react";
 import { useParams } from "react-router";
 import { useAsync } from "../hooks/useAsync";
-import { getPost } from "../services/getPost";
+import { getPost } from "../services/posts.srvs";
 import { Comment, Post } from "../types/types";
 
 interface PostContextProps {
@@ -38,7 +38,7 @@ export function PostProvider({ children }: Props) {
     return commetsByParentId[id];
   };
 
-  console.log("groups", commetsByParentId);
+  // console.log("groups", commetsByParentId);
 
   if (loading || error) return;
 
@@ -57,6 +57,6 @@ export function PostProvider({ children }: Props) {
 
 export function usePost() {
   const context = useContext(PostContext);
-
+  if (!context) throw new Error("usePost must be wrapped in PostProvider");
   return { ...context };
 }

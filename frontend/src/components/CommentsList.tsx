@@ -5,7 +5,7 @@ interface Props {
 }
 const CommentsList = ({ comments }: Props) => {
   return comments.map((comment) => (
-    <div key={comment.id} className="px-10">
+    <div key={comment.id} className="pl-2">
       <Comment {...comment} />
     </div>
   ));
