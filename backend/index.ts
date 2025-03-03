@@ -1,187 +1,108 @@
+import type { SessionUser } from "./types/types.ts";
 import fastify from "fastify";
 
 import cors from "@fastify/cors";
-import { httpErrors } from "@fastify/sensible";
-import prisma from "./cofig/prisma";
+import middleware from "@fastify/middie";
+import passport from "@fastify/passport";
+import fastifyCookie from "@fastify/cookie";
+import session from "@fastify/secure-session";
+import { Strategy as LocalStrategy } from "passport-local";
 
 //bun load's env no confing needed
 import { ALLOWD_ORIGNS } from "./cofig/constants";
-import { userRoutes } from "./routes/post.route";
-
+import { postsRoute } from "./routes/post.route";
+import { authRoute } from "./routes/auth.route";
+import SQLiteStore from "connect-sqlite3";
+import type { User } from "@prisma/client";
 const PORT: number = Number(process.env.PORT) || 3002;
-
-const FAKE_USER_ID = (await prisma.user.findFirst({ where: { name: "Kyle" } }))
-  ?.id;
-
-const COMMENT_SELECT_FIELDS = {
-  id: true,
-  message: true,
-  parentId: true,
-  createdAt: true,
-  user: {
-    select: {
-      id: true,
-      name: true,
+const app = fastify({
+  logger: {
+    transport: {
+      target: "pino-pretty", // Pretty print logs
+      options: {
+        colorize: true, // Add colors to logs
+        translateTime: "HH:MM:ss Z", // Format timestamp
+        ignore: "hostname,req,reqId,res", // Ignore unnecessary fields
+      },
     },
   },
-};
+});
 
-const app = fastify({ logger: false });
+app.setErrorHandler((error, request, reply) => {
+  console.error("🔥 Error:", error); // Logs the actual error
+  reply
+    .status(500)
+    .send({ error: "Internal Server Error", message: error.message });
+});
 
-//register route
-app.register(userRoutes);
+app.register(middleware);
 
+app.register(fastifyCookie);
+app.register(session, {
+  key: Buffer.from(process.env.SESSION_KEY ?? "", "hex"),
+
+  cookie: {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, //day
+    secure: false,
+  },
+});
+app.register(passport.initialize());
+app.register(passport.secureSession());
+//init passport
+
+passport.use(
+  new LocalStrategy({ usernameField: "email" }, (email, passowrd, done) => {
+    if (email === "bob") {
+      return done(null, { username: "bob", id: 1 });
+    }
+    return done(null, false, { message: "east side" });
+  })
+);
+passport.registerUserSerializer<User, SessionUser>(async function (user, req) {
+  return { id: 2, email: user.email, name: "abe" };
+});
+//deserialize
+
+passport.registerUserDeserializer(async (id, request) => {
+  return { username: "bob", id: 1 };
+});
+
+//config cors
 app.register(cors, {
   origin: ALLOWD_ORIGNS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
 });
 
-app.get("/posts", async (req, res) => {
-  const posts = await prisma.post.findMany({
-    select: {
-      id: true,
-      title: true,
-    },
-  });
+//register route
+app.register(postsRoute);
+app.register(authRoute);
 
-  return posts;
-});
-app.get("/posts/:id", async (req, res) => {
-  const { id }: any = req.params;
-  const posts = await prisma.post.findUnique({
-    where: {
-      id: id,
-    },
-    select: {
-      id: true,
-      body: true,
-      title: true,
-      comments: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          ...COMMENT_SELECT_FIELDS,
-          _count: {
-            select: { likes: true },
-          },
-        },
-      },
-    },
-  });
-
-  const likes = await prisma.like.findMany({
-    where: {
-      userId: FAKE_USER_ID,
-      commentId: {
-        in: posts?.comments.map((post) => post.id),
-      },
-    },
-  });
-
-  return {
-    ...posts,
-    comments: posts?.comments.map((comment) => {
-      const { _count, ...rest } = comment;
-      return {
-        ...rest,
-        liked: likes.some((like) => like.commentId === comment.id),
-        likeCount: _count.likes,
-      };
+app.post(
+  "/login",
+  {
+    preValidation: passport.authenticate("local", {
+      authInfo: true,
     }),
-  };
-});
-
-//get comments
-app.post("/posts/:id/comments", async (req, res) => {
-  const { message, parentId, postId }: any = req.body;
-  if (!message || !message.trim()) {
-    res.send(httpErrors.badRequest("message is required!"));
+  },
+  () => {
+    return { message: "login success" };
   }
-
-  const comment = await prisma.comment.create({
-    data: {
-      userId: FAKE_USER_ID ?? "",
-      message,
-      parentId,
-      postId,
-    },
-    select: COMMENT_SELECT_FIELDS,
-  });
-
-  return {
-    ...comment,
-    liked: false,
-    likeCount: 0,
-  };
-});
-
-app.put("/posts/:postId/comments/:commentId", async (req, res) => {
-  const { postId, commentId }: any = req.params;
-  const { message }: any = req.body;
-
-  if (!message || !message.trim()) {
-    res.send(httpErrors.badRequest("message is required!"));
+);
+app.post("/logout", async (req, res) => {
+  try {
+    await req.logOut();
+    res.clearCookie("session", { path: "/" });
+  } catch (err) {
+    console.log(err);
+    res.status(500);
   }
-
-  return await prisma.comment.update({
-    where: {
-      id: commentId,
-      postId: postId,
-    },
-    data: {
-      message,
-    },
-    select: {
-      message: true,
-    },
-  });
 });
-
-app.post("/posts/:postId/comments/:commentId/like", async (req, res) => {
-  const { postId, commentId }: any = req.params;
-  const userId = FAKE_USER_ID ?? "";
-
-  const like = await prisma.like.findUnique({
-    where: {
-      userId_commentId: { userId, commentId },
-    },
-  });
-
-  if (like === null) {
-    await prisma.like.create({ data: { userId, commentId } });
-    return { addLike: true };
-  }
-
-  await prisma.like.delete({
-    where: { userId_commentId: { userId, commentId } },
-  });
-  return { addLike: false };
+app.get("/me", (req, res) => {
+  console.log(req.user);
+  return { user: req.user };
 });
-
-//delete comment
-app.delete("/posts/:postId/comments/:commentId", async (req, res) => {
-  const { postId, commentId }: any = req.params;
-  const comment = await prisma.comment.findUnique({
-    where: { id: commentId },
-    select: { userId: true },
-  });
-
-  if (comment?.userId !== FAKE_USER_ID) {
-    return res.send(
-      httpErrors.unauthorized(
-        "You do not have permission to delete this message"
-      )
-    );
-  }
-
-  return await prisma.comment.delete({
-    where: { id: commentId, postId },
-    select: { id: true },
-  });
-});
-
 app.listen({ port: PORT }, (err) => {
   if (err) {
     console.log(err);

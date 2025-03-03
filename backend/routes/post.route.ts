@@ -3,7 +3,7 @@ import prisma from "../cofig/prisma";
 import { COMMENT_SELECT_FIELDS, FAKE_USER_ID } from "../cofig/constants";
 import { httpErrors } from "@fastify/sensible";
 
-export async function userRoutes(app: FastifyInstance) {
+export async function postsRoute(app: FastifyInstance) {
   app.get("/posts", async (req, res) => {
     const posts = await prisma.post.findMany({
       select: {
