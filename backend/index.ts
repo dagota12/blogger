@@ -1,14 +1,14 @@
-import { PrismaClient } from "@prisma/client";
 import fastify from "fastify";
-import dotenv from "dotenv";
 
 import cors from "@fastify/cors";
 import { httpErrors } from "@fastify/sensible";
+import prisma from "./cofig/prisma";
 
-dotenv.config(); //load env
+//bun load's env no confing needed
+import { ALLOWD_ORIGNS } from "./cofig/constants";
+import { userRoutes } from "./routes/post.route";
 
 const PORT: number = Number(process.env.PORT) || 3002;
-const prisma = new PrismaClient();
 
 const FAKE_USER_ID = (await prisma.user.findFirst({ where: { name: "Kyle" } }))
   ?.id;
@@ -27,12 +27,12 @@ const COMMENT_SELECT_FIELDS = {
 };
 
 const app = fastify({ logger: false });
+
+//register route
+app.register(userRoutes);
+
 app.register(cors, {
-  origin: [
-    process.env.CLIENT_ORIGIN || "http://localhost:5173",
-    "http://localhost:4173",
-    "http://10.240.89.22:5173/",
-  ],
+  origin: ALLOWD_ORIGNS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
 });
@@ -92,6 +92,8 @@ app.get("/posts/:id", async (req, res) => {
     }),
   };
 });
+
+//get comments
 app.post("/posts/:id/comments", async (req, res) => {
   const { message, parentId, postId }: any = req.body;
   if (!message || !message.trim()) {
@@ -136,6 +138,7 @@ app.put("/posts/:postId/comments/:commentId", async (req, res) => {
     },
   });
 });
+
 app.post("/posts/:postId/comments/:commentId/like", async (req, res) => {
   const { postId, commentId }: any = req.params;
   const userId = FAKE_USER_ID ?? "";
