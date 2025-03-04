@@ -4,10 +4,10 @@ FROM oven/bun:1 AS base
 WORKDIR /app
 ARG DATABASE_URL
 
-COPY package.json bun.lockB ./
-COPY prisma ./prsima
+COPY package.json bun.lockb ./
+COPY prisma ./prsima/
 RUN bun install
-
+RUN bun run migrate:prod
 
 COPY . .
 
