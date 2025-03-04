@@ -103,9 +103,10 @@ app.get("/me", (req, res) => {
   console.log(req.user);
   return { user: req.user };
 });
-app.listen({ port: PORT }, (err) => {
+app.listen({ port: Number(PORT), host: "0.0.0.0" }, (err, address) => {
   if (err) {
-    console.log(err);
+    console.error(err);
+    process.exit(1);
   }
-  console.log("server started!");
+  console.log(`🚀 Server running at ${address}`);
 });
