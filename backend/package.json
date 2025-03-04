@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch index.ts",
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "migrate:prod": "bunx prisma migrate deploy"
   },
   "prisma": {
     "seed": "bun run ./prisma/seed.ts"
