@@ -1,18 +1,32 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
+# Use official Bun image
 FROM oven/bun:1 AS base
+
 WORKDIR /app
+
+# Set the database URL as an environment variable
 ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
+# Copy package files first for better caching
 COPY package.json bun.lockb ./
-COPY prisma ./prsima/
-RUN bun install
-RUN bun run migrate:prod
 
+# Install dependencies
+RUN bun install
+
+# Copy Prisma files correctly
+COPY prisma ./prisma/
+
+# Generate Prisma Client
+RUN bunx prisma generate
+
+# Copy the rest of the app
 COPY . .
 
+# Expose the port
+EXPOSE 3002
+
+# Set production environment
 ENV NODE_ENV=production
 
-
-EXPOSE 3002
-CMD [ "bun", "run", "index.ts" ]
+# Run the application
+CMD ["bun", "run", "index.ts"]
