@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  backend:
+    build: .
+    container_name: blogger-backend
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+    restart: always
+    environment:
+      - PORT=${PORT}
+      - DATABASE_URL=${DB_CONTAINER}
+      - SESSION_KEY=${SESSION_KEY}
+    command: >
+      sh -c "env && bunx prisma db push && bun run start"

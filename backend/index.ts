@@ -3,13 +3,15 @@ import fastify from "fastify";
 
 import cors from "@fastify/cors";
 import middleware from "@fastify/middie";
-import passport from "@fastify/passport";
+import passport from "./config/passport.ts";
 import fastifyCookie from "@fastify/cookie";
 import session from "@fastify/secure-session";
 import { Strategy as LocalStrategy } from "passport-local";
 
+import fp from "fastify-plugin";
+
 //bun load's env no confing needed
-import { ALLOWD_ORIGNS } from "./cofig/constants";
+import { ALLOWD_ORIGNS } from "./config/constants.ts";
 import { postsRoute } from "./routes/post.route";
 import { authRoute } from "./routes/auth.route";
 import SQLiteStore from "connect-sqlite3";
@@ -43,30 +45,15 @@ app.register(session, {
 
   cookie: {
     httpOnly: true,
+    path: "/",
+    sameSite: "lax",
     maxAge: 1000 * 60 * 60 * 24, //day
     secure: false,
   },
 });
+//init passport
 app.register(passport.initialize());
 app.register(passport.secureSession());
-//init passport
-
-passport.use(
-  new LocalStrategy({ usernameField: "email" }, (email, passowrd, done) => {
-    if (email === "bob") {
-      return done(null, { username: "bob", id: 1 });
-    }
-    return done(null, false, { message: "east side" });
-  })
-);
-passport.registerUserSerializer<User, SessionUser>(async function (user, req) {
-  return { id: 2, email: user.email, name: "abe" };
-});
-//deserialize
-
-passport.registerUserDeserializer(async (id, request) => {
-  return { username: "bob", id: 1 };
-});
 
 //config cors
 app.register(cors, {
@@ -77,29 +64,11 @@ app.register(cors, {
 
 //register route
 app.register(postsRoute);
-app.register(authRoute);
+app.register(fp(authRoute));
 
-app.post(
-  "/login",
-  {
-    preValidation: passport.authenticate("local", {
-      authInfo: true,
-    }),
-  },
-  () => {
-    return { message: "login success" };
-  }
-);
-app.post("/logout", async (req, res) => {
-  try {
-    await req.logOut();
-    res.clearCookie("session", { path: "/" });
-  } catch (err) {
-    console.log(err);
-    res.status(500);
-  }
-});
 app.get("/me", (req, res) => {
+  console.log(req.headers);
+
   console.log(req.user);
   return { user: req.user };
 });

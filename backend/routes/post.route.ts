@@ -1,6 +1,6 @@
 import type { FastifyHttpOptions, FastifyInstance } from "fastify";
-import prisma from "../cofig/prisma";
-import { COMMENT_SELECT_FIELDS, FAKE_USER_ID } from "../cofig/constants";
+import prisma from "../config/prisma";
+import { COMMENT_SELECT_FIELDS, FAKE_USER_ID } from "../config/constants";
 import { httpErrors } from "@fastify/sensible";
 
 export async function postsRoute(app: FastifyInstance) {
