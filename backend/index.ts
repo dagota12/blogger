@@ -16,6 +16,7 @@ import { postsRoute } from "./routes/post.route";
 import { authRoute } from "./routes/auth.route";
 import SQLiteStore from "connect-sqlite3";
 import type { User } from "@prisma/client";
+import prisma from "./config/prisma.ts";
 const PORT: number = Number(process.env.PORT) || 3002;
 const app = fastify({
   logger: {
@@ -64,14 +65,8 @@ app.register(cors, {
 
 //register route
 app.register(postsRoute);
-app.register(fp(authRoute));
+app.register(authRoute);
 
-app.get("/me", (req, res) => {
-  console.log(req.headers);
-
-  console.log(req.user);
-  return { user: req.user };
-});
 app.listen({ port: Number(PORT), host: "0.0.0.0" }, (err, address) => {
   if (err) {
     console.error(err);

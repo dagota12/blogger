@@ -3,7 +3,7 @@ import prisma from "./prisma";
 export const ALLOWD_ORIGNS = [
   process.env.CLIENT_ORIGIN || "http://localhost:5173",
   "http://localhost:4173",
-  "http://10.240.89.22:5173/",
+  "http://10.240.68.112:5173",
 ];
 
 export const COMMENT_SELECT_FIELDS = {

@@ -1,7 +1,13 @@
-import type { FastifyHttpOptions, FastifyInstance } from "fastify";
+import type {
+  FastifyHttpOptions,
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from "fastify";
 import prisma from "../config/prisma";
 import { COMMENT_SELECT_FIELDS, FAKE_USER_ID } from "../config/constants";
 import { httpErrors } from "@fastify/sensible";
+import type { NextFunction } from "@fastify/middie";
 
 export async function postsRoute(app: FastifyInstance) {
   app.get("/posts", async (req, res) => {
@@ -14,58 +20,71 @@ export async function postsRoute(app: FastifyInstance) {
 
     return posts;
   });
-
+  app.decorate(
+    "auth",
+    function (req: FastifyRequest, res: FastifyReply, next: NextFunction) {
+      console.log(req.user);
+      next();
+    }
+  );
   //get post
-  app.get("/posts/:id", async (req, res) => {
-    const { id }: any = req.params;
-    const posts = await prisma.post.findUnique({
-      where: {
-        id: id,
-      },
-      select: {
-        id: true,
-        body: true,
-        title: true,
-        comments: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          select: {
-            ...COMMENT_SELECT_FIELDS,
-            _count: {
-              select: { likes: true },
+  app.get(
+    "/posts/:id",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { id }: any = req.params;
+      const posts = await prisma.post.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          id: true,
+          body: true,
+          title: true,
+          comments: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              ...COMMENT_SELECT_FIELDS,
+              _count: {
+                select: { likes: true },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    const likes = await prisma.like.findMany({
-      where: {
-        userId: FAKE_USER_ID,
-        commentId: {
-          in: posts?.comments.map((post) => post.id),
+      const likes = await prisma.like.findMany({
+        where: {
+          userId: FAKE_USER_ID,
+          commentId: {
+            in: posts?.comments.map((post) => post.id),
+          },
         },
-      },
-    });
+      });
 
-    return {
-      ...posts,
-      comments: posts?.comments.map((comment) => {
-        const { _count, ...rest } = comment;
-        return {
-          ...rest,
-          liked: likes.some((like) => like.commentId === comment.id),
-          likeCount: _count.likes,
-        };
-      }),
-    };
-  });
+      return {
+        ...posts,
+        comments: posts?.comments.map((comment) => {
+          const { _count, ...rest } = comment;
+          return {
+            ...rest,
+            liked: likes.some((like) => like.commentId === comment.id),
+            likeCount: _count.likes,
+          };
+        }),
+      };
+    }
+  );
   //get comments
   app.post("/posts/:id/comments", async (req, res) => {
     const { message, parentId, postId }: any = req.body;
     if (!message || !message.trim()) {
-      res.send(httpErrors.badRequest("message is required!"));
+      res.status(400);
+      return { message: "message is required!" };
     }
 
     const comment = await prisma.comment.create({
@@ -91,7 +110,8 @@ export async function postsRoute(app: FastifyInstance) {
     const { message }: any = req.body;
 
     if (!message || !message.trim()) {
-      res.send(httpErrors.badRequest("message is required!"));
+      res.status(400);
+      return { message: "message is required!" };
     }
 
     return await prisma.comment.update({
@@ -139,11 +159,8 @@ export async function postsRoute(app: FastifyInstance) {
     });
 
     if (comment?.userId !== FAKE_USER_ID) {
-      return res.send(
-        httpErrors.unauthorized(
-          "You do not have permission to delete this message"
-        )
-      );
+      res.status(403);
+      return { message: "you cant perform this action" };
     }
 
     return await prisma.comment.delete({

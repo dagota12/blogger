@@ -1,8 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { LoginUser } from "../controllers/auth.ctrl";
+import { SignUp } from "../controllers/auth.ctrl";
 import passport from "../config/passport";
+import prisma from "../config/prisma";
 
 export function authRoute(app: FastifyInstance) {
+  app.post("/auth/signup", SignUp);
   app.post(
     "/auth/login",
     {
@@ -12,6 +14,20 @@ export function authRoute(app: FastifyInstance) {
     },
     () => {
       return { message: "login success" };
+    }
+  );
+  app.get(
+    "/auth/github",
+    passport.authenticate("github", { scope: ["user:email"] })
+  );
+
+  app.get(
+    "/auth/github/callback",
+    {
+      preValidation: passport.authenticate("github", { authInfo: true }),
+    },
+    function () {
+      return { message: "success" };
     }
   );
 
@@ -25,7 +41,19 @@ export function authRoute(app: FastifyInstance) {
     }
   });
   app.get("/auth/me", (req, res) => {
-    console.log(req.user);
-    return { user: req.user };
+    if (!req.user?.id) {
+      res.status(401);
+      return { message: "Unauthorized" };
+    }
+
+    const user = prisma.user.findUnique({
+      where: {
+        id: req.user?.id,
+      },
+      omit: {
+        password: true,
+      },
+    });
+    return user;
   });
 }
