@@ -20,13 +20,6 @@ export async function postsRoute(app: FastifyInstance) {
 
     return posts;
   });
-  app.decorate(
-    "auth",
-    function (req: FastifyRequest, res: FastifyReply, next: NextFunction) {
-      console.log(req.user);
-      next();
-    }
-  );
   //get post
   app.get(
     "/posts/:id",

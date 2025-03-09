@@ -1,8 +1,8 @@
 import type { SessionUser } from "./types/types.ts";
-import fastify from "fastify";
+import fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 
 import cors from "@fastify/cors";
-import middleware from "@fastify/middie";
+import middleware, { type NextFunction } from "@fastify/middie";
 import passport from "./config/passport.ts";
 import fastifyCookie from "@fastify/cookie";
 import session from "@fastify/secure-session";
@@ -17,6 +17,7 @@ import { authRoute } from "./routes/auth.route";
 import SQLiteStore from "connect-sqlite3";
 import type { User } from "@prisma/client";
 import prisma from "./config/prisma.ts";
+import fastifySensible from "@fastify/sensible";
 const PORT: number = Number(process.env.PORT) || 3002;
 const app = fastify({
   logger: {
@@ -30,13 +31,23 @@ const app = fastify({
     },
   },
 });
-
-app.setErrorHandler((error, request, reply) => {
-  console.error("🔥 Error:", error); // Logs the actual error
-  reply
-    .status(500)
-    .send({ error: "Internal Server Error", message: error.message });
-});
+app.register(fastifySensible);
+app.decorate(
+  "auth",
+  function (req: FastifyRequest, res: FastifyReply, next: NextFunction) {
+    console.log(req.user);
+    if (!req.user?.id) {
+      return res.unauthorized("login first");
+    }
+    // res.status(401).send();
+    next();
+    return;
+  }
+);
+// app.setErrorHandler((error, request, reply) => {
+//   console.error("🔥 Error:", error); // Logs the actual error
+//   reply.send();
+// });
 
 app.register(middleware);
 
@@ -47,9 +58,9 @@ app.register(session, {
   cookie: {
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24, //day
-    secure: false,
+    secure: true,
   },
 });
 //init passport

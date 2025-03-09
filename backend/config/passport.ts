@@ -60,6 +60,14 @@ passport.use(
       if (!userEmail) {
         return done(false, { message: "don't have proper email" });
       }
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: userEmail,
+        },
+      });
+      if (existingUser) {
+        return done(null, { id: existingUser.id });
+      }
       const createdUser = await prisma.user.create({
         data: {
           name: profile.displayName,
