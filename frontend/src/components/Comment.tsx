@@ -89,12 +89,12 @@ const Comment = ({ id, message, user, createdAt, liked, likeCount }: Props) => {
   const childComments = getReplies(id);
   return (
     <>
-      <div className="px-3 py-2 border mb-2 border-slate-400 rounded-md flex flex-col gap-2 max-w-[600px]">
+      <div className="px-3 py-2 bg-slate-900 border-l   mb-2 border-slate-700 rounded-md flex flex-col gap-2 max-w-[600px]">
         <div className="flex  items-center">
-          <span className="text-sm font-semibold text-zinc-900">
+          <span className="text-sm font-semibold text-zinc-400">
             {user.name}
           </span>
-          <DotIcon className="text-slate-600" />
+          <DotIcon className="text-slate-500" />
           <span className="text-sm text-slate-500">
             {dateFormatter.format(Date.parse(createdAt))}
           </span>
@@ -160,7 +160,7 @@ const Comment = ({ id, message, user, createdAt, liked, likeCount }: Props) => {
           <div className={`${hideReplies ? "hidden" : "flex grow pl-1"}`}>
             {/* vertical divider for hide */}
             <button
-              className="border-none bg-blue-100 w-2 mt-1 relative outlien-none cursor-pointer"
+              className="border-none bg-slate-700 w-2 mt-1 relative outlien-none cursor-pointer"
               onClick={() => setHideReplies(true)}
             />
             <div className="grow">
@@ -168,7 +168,7 @@ const Comment = ({ id, message, user, createdAt, liked, likeCount }: Props) => {
             </div>
           </div>
           <button
-            className={`p-1 border cursor-pointer border-blue-300 text-sm rounded-md mt-1 ${
+            className={`p-1 cursor-pointer border-blue-300 text-xs rounded-md mt-1 ${
               !hideReplies ? "hidden" : "block"
             }`}
             onClick={() => setHideReplies(false)}

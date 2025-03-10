@@ -11,7 +11,7 @@ const IconButton = ({ Icon, active, color, children, ...props }: Props) => {
   return (
     <button
       className={`p-1 flex items-center bg-inherit border-none rounded-sm text-sm cursor-pointer ${
-        active ? color : "text-slate-700"
+        active ? color : "text-slate-300"
       }`}
       {...props}
     >

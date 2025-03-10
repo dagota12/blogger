@@ -6,6 +6,7 @@ import { useAsyncFn } from "../hooks/useAsync";
 import { AuthUser, useAuth } from "../store/auth.store";
 import { userSignup } from "../services/auth.srvs";
 import Button from "./Button";
+import Form from "./Form";
 
 export const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -46,11 +47,8 @@ const SignUp = () => {
     console.log();
   };
   return (
-    <div className="flex w-full bg-slate-200 px-4 flex-col items-center justify-center  h-screen">
-      <form
-        className="w-full flex flex-col gap-3 items-center justify-center max-w-[400px] rouded-md px-3 py-4 bg-slate-50 rounded-md"
-        onSubmit={onSubmit}
-      >
+    <div className="flex w-full bg-slate-900 px-4 flex-col items-center justify-center  h-screen">
+      <Form onSubmit={onSubmit}>
         <h1 className="text-2xl font-semibold">Signup</h1>
         <Input
           type="email"
@@ -77,11 +75,7 @@ const SignUp = () => {
           onChange={() => {}}
           placeholder="password"
         />
-        <Button
-          className="p-2 bg-zinc-700 w-full rounded-md mt-4 text-zinc-50"
-          disabled={loading}
-          type="submit"
-        >
+        <Button disabled={loading} type="submit">
           submit
         </Button>
         <div>
@@ -92,7 +86,7 @@ const SignUp = () => {
             </Link>
           </p>
         </div>
-      </form>
+      </Form>
     </div>
   );
 };

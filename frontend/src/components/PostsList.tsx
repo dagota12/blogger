@@ -8,7 +8,7 @@ const PostsList = () => {
   if (loading || error) return;
 
   return (
-    <div>
+    <div className="relative top-20 bg-gray-900 text-slate-300">
       {posts &&
         posts.map((post: any, i: number) => (
           <li key={i} className="text-blue-500">

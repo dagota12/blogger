@@ -5,7 +5,6 @@ import bcrypt from "bcrypt";
 import type { User } from "@prisma/client";
 import { Strategy as GitHubStrategy } from "passport-github2";
 import prisma from "./prisma";
-import { useFunc } from "../dist";
 passport.use(
   new LocalStrategy(
     { usernameField: "email" },
@@ -15,7 +14,8 @@ passport.use(
           email,
         },
       });
-      if (user?.email !== email) {
+
+      if (!user) {
         return done(null, false, { message: "incorrect crediential1" });
       }
       if (!user?.password)

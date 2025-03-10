@@ -23,10 +23,10 @@ const Post = () => {
 
   if (!post) return <h1>loading...</h1>;
   return (
-    <div className="container mx-auto">
+    <div className="text-slate-300 relative top-20 w-full py-10 min-h-screen md:px-10 mx-auto bg-gray-900">
       <div className="w-full p-3">
         <h1 className="text-3xl font-bold">{post.title}</h1>
-        <article className="text-slate-600">{post.body}</article>
+        <article className="text-slate-500">{post.body}</article>
       </div>
       <section className="mt-3">
         <CommentForm
