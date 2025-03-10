@@ -65,8 +65,6 @@ export function PostProvider({ children }: Props) {
     setComments((prev) => [comment, ...prev]);
   };
   const updateLocalComment = (id: string, message: string) => {
-    console.log("sdf");
-
     setComments((prev) => {
       return prev.map((comment) => {
         if (comment.id === id) {

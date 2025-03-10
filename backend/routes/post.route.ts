@@ -73,75 +73,93 @@ export async function postsRoute(app: FastifyInstance) {
     }
   );
   //get comments
-  app.post("/posts/:id/comments", async (req, res) => {
-    const { message, parentId, postId }: any = req.body;
-    if (!message || !message.trim()) {
-      res.status(400);
-      return { message: "message is required!" };
+  app.post(
+    "/posts/:id/comments",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { message, parentId, postId }: any = req.body;
+      if (!message || !message.trim()) {
+        res.status(400);
+        return { message: "message is required!" };
+      }
+
+      const comment = await prisma.comment.create({
+        data: {
+          userId: req.user?.id ?? "",
+          message,
+          parentId,
+          postId,
+        },
+        select: COMMENT_SELECT_FIELDS,
+      });
+
+      return {
+        ...comment,
+        liked: false,
+        likeCount: 0,
+      };
     }
-
-    const comment = await prisma.comment.create({
-      data: {
-        userId: FAKE_USER_ID ?? "",
-        message,
-        parentId,
-        postId,
-      },
-      select: COMMENT_SELECT_FIELDS,
-    });
-
-    return {
-      ...comment,
-      liked: false,
-      likeCount: 0,
-    };
-  });
+  );
 
   //update comment
-  app.put("/posts/:postId/comments/:commentId", async (req, res) => {
-    const { postId, commentId }: any = req.params;
-    const { message }: any = req.body;
+  app.put(
+    "/posts/:postId/comments/:commentId",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { postId, commentId }: any = req.params;
+      const { message }: any = req.body;
 
-    if (!message || !message.trim()) {
-      res.status(400);
-      return { message: "message is required!" };
+      if (!message || !message.trim()) {
+        res.status(400);
+        return { message: "message is required!" };
+      }
+
+      return await prisma.comment.update({
+        where: {
+          id: commentId,
+          postId: postId,
+        },
+        data: {
+          message,
+        },
+        select: {
+          message: true,
+        },
+      });
     }
-
-    return await prisma.comment.update({
-      where: {
-        id: commentId,
-        postId: postId,
-      },
-      data: {
-        message,
-      },
-      select: {
-        message: true,
-      },
-    });
-  });
+  );
 
   //like comment
-  app.post("/posts/:postId/comments/:commentId/like", async (req, res) => {
-    const { postId, commentId }: any = req.params;
-    const userId = FAKE_USER_ID ?? "";
+  app.post(
+    "/posts/:postId/comments/:commentId/like",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { postId, commentId }: any = req.params;
+      const userId = req.user?.id ?? "";
 
-    const like = await prisma.like.findUnique({
-      where: {
-        userId_commentId: { userId, commentId },
-      },
-    });
+      const like = await prisma.like.findUnique({
+        where: {
+          userId_commentId: { userId, commentId },
+        },
+      });
 
-    if (like === null) {
-      await prisma.like.create({ data: { userId, commentId } });
-      return { addLike: true };
+      if (like === null) {
+        await prisma.like.create({ data: { userId, commentId } });
+        return { addLike: true };
+      }
+
+      await prisma.like.delete({
+        where: { userId_commentId: { userId, commentId } },
+      });
+      return { addLike: false };
     }
-
-    await prisma.like.delete({
-      where: { userId_commentId: { userId, commentId } },
-    });
-    return { addLike: false };
-  });
+  );
 
   //delete comment
   app.delete("/posts/:postId/comments/:commentId", async (req, res) => {
