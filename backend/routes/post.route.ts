@@ -21,57 +21,51 @@ export async function postsRoute(app: FastifyInstance) {
     return posts;
   });
   //get post
-  app.get(
-    "/posts/:id",
-    {
-      preValidation: app.auth,
-    },
-    async (req, res) => {
-      const { id }: any = req.params;
-      const posts = await prisma.post.findUnique({
-        where: {
-          id: id,
-        },
-        select: {
-          id: true,
-          body: true,
-          title: true,
-          comments: {
-            orderBy: {
-              createdAt: "desc",
-            },
-            select: {
-              ...COMMENT_SELECT_FIELDS,
-              _count: {
-                select: { likes: true },
-              },
+  app.get("/posts/:id", async (req, res) => {
+    const { id }: any = req.params;
+    const posts = await prisma.post.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        body: true,
+        title: true,
+        comments: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            ...COMMENT_SELECT_FIELDS,
+            _count: {
+              select: { likes: true },
             },
           },
         },
-      });
+      },
+    });
 
-      const likes = await prisma.like.findMany({
-        where: {
-          userId: FAKE_USER_ID,
-          commentId: {
-            in: posts?.comments.map((post) => post.id),
-          },
+    const likes = await prisma.like.findMany({
+      where: {
+        userId: FAKE_USER_ID,
+        commentId: {
+          in: posts?.comments.map((post) => post.id),
         },
-      });
+      },
+    });
 
-      return {
-        ...posts,
-        comments: posts?.comments.map((comment) => {
-          const { _count, ...rest } = comment;
-          return {
-            ...rest,
-            liked: likes.some((like) => like.commentId === comment.id),
-            likeCount: _count.likes,
-          };
-        }),
-      };
-    }
-  );
+    return {
+      ...posts,
+      comments: posts?.comments.map((comment) => {
+        const { _count, ...rest } = comment;
+        return {
+          ...rest,
+          liked: likes.some((like) => like.commentId === comment.id),
+          likeCount: _count.likes,
+        };
+      }),
+    };
+  });
   //get comments
   app.post(
     "/posts/:id/comments",
@@ -162,21 +156,27 @@ export async function postsRoute(app: FastifyInstance) {
   );
 
   //delete comment
-  app.delete("/posts/:postId/comments/:commentId", async (req, res) => {
-    const { postId, commentId }: any = req.params;
-    const comment = await prisma.comment.findUnique({
-      where: { id: commentId },
-      select: { userId: true },
-    });
+  app.delete(
+    "/posts/:postId/comments/:commentId",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { postId, commentId }: any = req.params;
+      const comment = await prisma.comment.findUnique({
+        where: { id: commentId },
+        select: { userId: true },
+      });
 
-    if (comment?.userId !== FAKE_USER_ID) {
-      res.status(403);
-      return { message: "you cant perform this action" };
+      if (comment?.userId !== req.user?.id) {
+        res.status(403);
+        return { message: "you cant perform this action" };
+      }
+
+      return await prisma.comment.delete({
+        where: { id: commentId, postId },
+        select: { id: true },
+      });
     }
-
-    return await prisma.comment.delete({
-      where: { id: commentId, postId },
-      select: { id: true },
-    });
-  });
+  );
 }

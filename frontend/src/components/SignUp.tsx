@@ -43,7 +43,11 @@ const SignUp = () => {
       return;
     }
     setFormErrors({});
-    execute({ data }).then(console.log).catch(console.log);
+    execute({ data })
+      .then(() => {
+        router("/", { replace: true });
+      })
+      .catch(console.log);
     console.log();
   };
   return (

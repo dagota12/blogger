@@ -26,7 +26,7 @@ const Post = () => {
     <div className="text-slate-300 relative top-20 w-full py-10 min-h-screen md:px-10 mx-auto bg-gray-900">
       <div className="w-full p-3">
         <h1 className="text-3xl font-bold">{post.title}</h1>
-        <article className="text-slate-500">{post.body}</article>
+        <article className="text-slate-500 max-w-[1000px]">{post.body}</article>
       </div>
       <section className="mt-3">
         <CommentForm
