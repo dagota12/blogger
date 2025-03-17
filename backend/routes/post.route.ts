@@ -15,11 +15,37 @@ export async function postsRoute(app: FastifyInstance) {
       select: {
         id: true,
         title: true,
+        body: true,
       },
     });
 
     return posts;
   });
+  app.post(
+    "/posts",
+    {
+      preValidation: app.auth,
+    },
+    async (req, res) => {
+      const { title, body }: any = req.body;
+      if (!title || !body || !title.trim() || !body.trim()) {
+        return res.status(400).send();
+      }
+
+      try {
+        const post = prisma.post.create({
+          data: {
+            userId: req.user?.id ?? "",
+            title,
+            body,
+          },
+        });
+        return post;
+      } catch (err) {
+        res.internalServerError("faild to create post");
+      }
+    }
+  );
   //get post
   app.get("/posts/:id", async (req, res) => {
     const { id }: any = req.params;
@@ -45,7 +71,7 @@ export async function postsRoute(app: FastifyInstance) {
       },
     });
 
-    const likes = await prisma.like.findMany({
+    const likes = await prisma.commentLike.findMany({
       where: {
         userId: FAKE_USER_ID,
         commentId: {
@@ -106,24 +132,27 @@ export async function postsRoute(app: FastifyInstance) {
     async (req, res) => {
       const { postId, commentId }: any = req.params;
       const { message }: any = req.body;
-
       if (!message || !message.trim()) {
         res.status(400);
         return { message: "message is required!" };
       }
 
-      return await prisma.comment.update({
-        where: {
-          id: commentId,
-          postId: postId,
-        },
-        data: {
-          message,
-        },
-        select: {
-          message: true,
-        },
-      });
+      try {
+        return await prisma.comment.update({
+          where: {
+            id: commentId,
+            postId: postId,
+          },
+          data: {
+            message,
+          },
+          select: {
+            message: true,
+          },
+        });
+      } catch (err) {
+        res.internalServerError("Faild!");
+      }
     }
   );
 
@@ -137,20 +166,24 @@ export async function postsRoute(app: FastifyInstance) {
       const { postId, commentId }: any = req.params;
       const userId = req.user?.id ?? "";
 
-      const like = await prisma.like.findUnique({
-        where: {
-          userId_commentId: { userId, commentId },
-        },
-      });
+      try {
+        const like = await prisma.commentLike.findUnique({
+          where: {
+            userId_commentId: { userId, commentId },
+          },
+        });
 
-      if (like === null) {
-        await prisma.like.create({ data: { userId, commentId } });
-        return { addLike: true };
+        if (like === null) {
+          await prisma.commentLike.create({ data: { userId, commentId } });
+          return { addLike: true };
+        }
+
+        await prisma.commentLike.delete({
+          where: { userId_commentId: { userId, commentId } },
+        });
+      } catch (err) {
+        res.internalServerError("Faild!");
       }
-
-      await prisma.like.delete({
-        where: { userId_commentId: { userId, commentId } },
-      });
       return { addLike: false };
     }
   );
@@ -163,14 +196,19 @@ export async function postsRoute(app: FastifyInstance) {
     },
     async (req, res) => {
       const { postId, commentId }: any = req.params;
-      const comment = await prisma.comment.findUnique({
-        where: { id: commentId },
-        select: { userId: true },
-      });
-
-      if (comment?.userId !== req.user?.id) {
-        res.status(403);
-        return { message: "you cant perform this action" };
+      try {
+        const comment = await prisma.comment.findUnique({
+          where: { id: commentId },
+          select: { userId: true },
+        });
+        if (!comment) throw Error("comment not found");
+        if (comment?.userId !== req.user?.id) {
+          res.status(403);
+          return { message: "you cant perform this action" };
+        }
+      } catch (err: any) {
+        console.log(err);
+        return res.internalServerError(err.message);
       }
 
       return await prisma.comment.delete({

@@ -17,18 +17,34 @@ datasource db {
 model Post{
   id String @id @default(uuid())
   title String
+  userId String
+  user User @relation("post_author",fields: [userId],references: [id],onDelete: Cascade)
   body String
   comments Comment[]
+  likes PostVote[]
 }
-
+model PostVote{
+  id String @id @default(uuid())
+  user User @relation (fields:[userId],references: [id],onDelete: Cascade)
+  post Post @relation(fields: [postId],references:[id],onDelete: Cascade)
+  vote_type PostVoteType
+  userId String
+  postId String
+}
+enum PostVoteType{
+  UPVOTE
+  dOWNVOTE
+}
 model User{
   id String @id @default(uuid())
   name String 
   email String @default("email")
   password String?
   profile_img String?
+  posts Post[] @relation("post_author")
   comments Comment[]
-  likes Like[]
+  likes CommentLike[]
+  postLikes PostVote[]
 }
 
 model Comment{
@@ -45,10 +61,10 @@ model Comment{
   children Comment[] @relation("ParentChild")
   parentId String? 
 
-  likes Like[]
+  likes CommentLike[]
 }
 
-model Like{
+model CommentLike{
   user User @relation(fields: [userId],references: [id],onDelete: Cascade)
   comment Comment @relation(fields: [commentId],references: [id],onDelete: Cascade)
   userId String
