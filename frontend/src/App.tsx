@@ -7,6 +7,7 @@ import AuthProvider from "./contexts/AuthContext";
 import SignUp from "./components/SignUp";
 import Login from "./components/Login";
 import Layout from "./components/Layout";
+import Home from "./components/Home";
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
-          <Route path="/" element={<PostsList />} />
+          <Route path="/" element={<Home />} />
           <Route
             path="/posts/:id"
             element={

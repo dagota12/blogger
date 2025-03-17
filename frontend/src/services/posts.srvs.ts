@@ -7,3 +7,9 @@ export function getPosts(): Promise<any[]> {
 export function getPost(id: string | undefined): Promise<Post> {
   return makeRequest(`posts/${id}`, {});
 }
+export function insertPost({ title, body }: any): Promise<Post> {
+  return makeRequest(`/posts`, {
+    method: "POST",
+    data: { title, body },
+  });
+}

@@ -67,7 +67,7 @@ const Login = () => {
           onChange={() => {}}
           placeholder="password"
         />
-        <Button disabled={loading} type="submit">
+        <Button disabled={loading} type="submit" className="w-full">
           submit
         </Button>
         <div>
